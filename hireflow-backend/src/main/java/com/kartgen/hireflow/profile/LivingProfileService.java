@@ -156,8 +156,9 @@ public class LivingProfileService {
         // Carry forward prior skills from previous profile versions so living profile accumulates verified skills
         if (candidateId != null) {
             List<CandidateSkill> priorSkills = candidateSkillRepo.findByCandidateId(candidateId);
-            for (CandidateSkill ps : priorSkills) {
-                skillRepo.findById(ps.getSkillId()).ifPresent(s -> allSkillNames.add(s.getCanonicalName()));
+            if (!priorSkills.isEmpty()) {
+                List<UUID> priorSkillIds = priorSkills.stream().map(CandidateSkill::getSkillId).toList();
+                skillRepo.findAllById(priorSkillIds).forEach(s -> allSkillNames.add(s.getCanonicalName()));
             }
         }
 
@@ -168,11 +169,12 @@ public class LivingProfileService {
             byCanonical.put(skill.getCanonicalName().toLowerCase(Locale.ROOT), skill);
         }
 
+        List<CandidateSkill> skillsToSave = new java.util.ArrayList<>();
         for (String name : allSkillNames) {
             if (name == null) continue;
             Skill skill = byCanonical.get(name.toLowerCase(Locale.ROOT));
             if (skill == null) continue;
-            candidateSkillRepo.save(CandidateSkill.builder()
+            skillsToSave.add(CandidateSkill.builder()
                     .organizationId(orgId)
                     .candidateId(candidateId)
                     .skillId(skill.getId())
@@ -181,6 +183,10 @@ public class LivingProfileService {
                     .confidence(new BigDecimal("0.800"))
                     .lastConfirmedAt(Instant.now())
                     .build());
+        }
+
+        if (!skillsToSave.isEmpty()) {
+            candidateSkillRepo.saveAll(skillsToSave);
         }
     }
 
