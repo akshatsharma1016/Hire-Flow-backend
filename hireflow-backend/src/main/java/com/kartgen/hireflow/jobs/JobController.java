@@ -95,8 +95,19 @@ public class JobController {
         Page<JobMatch> matchPage = jobService.getJobMatches(orgId, id,
                 PageRequest.of(page, Math.min(100, Math.max(1, size))));
 
+        // ⚡ Bolt Performance Optimization:
+        // Collect all candidate IDs from the page and fetch them in a single query
+        // to avoid N+1 queries when mapping matches to DTOs.
+        List<UUID> candidateIds = matchPage.getContent().stream()
+                .map(JobMatch::getCandidateId)
+                .toList();
+
+        Map<UUID, Candidate> candidatesMap = candidateIds.isEmpty() ? Map.of() :
+                candidateRepo.findByIdInAndOrganizationId(candidateIds, orgId).stream()
+                .collect(java.util.stream.Collectors.toMap(Candidate::getId, c -> c));
+
         Page<MatchDto> dtos = matchPage.map(m -> {
-            Candidate c = candidateRepo.findByIdAndOrganizationId(m.getCandidateId(), orgId).orElse(null);
+            Candidate c = candidatesMap.get(m.getCandidateId());
             return new MatchDto(
                     m.getCandidateId(),
                     c != null ? c.getDisplayName() : "Unknown",

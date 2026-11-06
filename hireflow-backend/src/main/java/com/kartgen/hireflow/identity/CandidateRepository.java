@@ -25,6 +25,8 @@ public interface CandidateRepository extends JpaRepository<Candidate, UUID> {
 
     java.util.Optional<Candidate> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
+    List<Candidate> findByIdInAndOrganizationId(List<UUID> ids, UUID organizationId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT c FROM Candidate c WHERE c.id = :id")
     Optional<Candidate> findByIdForUpdate(@Param("id") UUID id);
