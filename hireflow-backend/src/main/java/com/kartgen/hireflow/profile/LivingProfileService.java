@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -156,8 +157,12 @@ public class LivingProfileService {
         // Carry forward prior skills from previous profile versions so living profile accumulates verified skills
         if (candidateId != null) {
             List<CandidateSkill> priorSkills = candidateSkillRepo.findByCandidateId(candidateId);
-            for (CandidateSkill ps : priorSkills) {
-                skillRepo.findById(ps.getSkillId()).ifPresent(s -> allSkillNames.add(s.getCanonicalName()));
+            if (!priorSkills.isEmpty()) {
+                // ⚡ Bolt: Fixed N+1 query by batching skill resolution instead of finding them one-by-one
+                Set<UUID> priorSkillIds = priorSkills.stream()
+                        .map(CandidateSkill::getSkillId)
+                        .collect(Collectors.toSet());
+                skillRepo.findAllById(priorSkillIds).forEach(s -> allSkillNames.add(s.getCanonicalName()));
             }
         }
 
