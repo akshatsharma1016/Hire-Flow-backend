@@ -2,6 +2,7 @@ package com.kartgen.hireflow.document;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tika.Tika;
 import org.springframework.stereotype.Service;
 
 import java.util.regex.Pattern;
@@ -13,6 +14,7 @@ public class ResumeGatekeeperService {
 
     private final TikaMimeDetector mimeDetector;
     private final PdfBoxTextExtractor pdfExtractor;
+    private final Tika tika = new Tika();
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}");
     private static final Pattern PHONE_PATTERN = Pattern.compile("(\\+?\\d{1,3}[-.\\s]?)?\\(?\\d{2,4}\\)?[-.\\s]?\\d{3,4}[-.\\s]?\\d{3,4}");
@@ -32,7 +34,7 @@ public class ResumeGatekeeperService {
         } else {
             // For DOCX, Tika can extract text; for simplicity use PDFBox for PDF only
             try {
-                var tika = new org.apache.tika.Tika();
+                // ⚡ Bolt: Use shared thread-safe Tika instance to avoid expensive reinstantiation per request
                 text = tika.parseToString(new java.io.ByteArrayInputStream(fileData));
             } catch (Exception e) {
                 log.warn("Tika text extraction failed for {}: {}", fileName, e.getMessage());
