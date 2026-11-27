@@ -1,0 +1,3 @@
+## 2023-10-25 - [JDAnalyzer Text Normalization Overhead]
+**Learning:** [The JDAnalyzer `containsAnyTerm` function performed expensive regex string normalizations across the whole document section for *every single skill* evaluated, creating O(N*M) text processing overhead. Java string replaceAll with regex is significantly slow when run thousands of times on large documents.]
+**Action:** [Always check if operations on large strings or data sets can be hoisted out of a loop. Specifically, pre-process document content once when checking against multiple terms rather than processing the document for each term.]

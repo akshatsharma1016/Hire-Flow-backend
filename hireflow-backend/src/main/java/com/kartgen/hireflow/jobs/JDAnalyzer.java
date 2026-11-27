@@ -46,8 +46,17 @@ public class JDAnalyzer {
             preferredIdx = heading.start();
         }
 
-        String mustSection = preferredIdx > 0 ? jdText.substring(0, preferredIdx) : jdText;
-        String preferredSection = preferredIdx > 0 ? jdText.substring(preferredIdx) : "";
+        String mustSectionRaw = preferredIdx > 0 ? jdText.substring(0, preferredIdx) : jdText;
+        String preferredSectionRaw = preferredIdx > 0 ? jdText.substring(preferredIdx) : "";
+
+        // Normalize document sections once before the loop (performance optimization)
+        String mustSection = mustSectionRaw.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9+#.\\s]", " ")
+                .replaceAll("\\s+", " ");
+        String preferredSection = preferredSectionRaw.isBlank() ? "" :
+                preferredSectionRaw.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9+#.\\s]", " ")
+                .replaceAll("\\s+", " ");
 
         Map<UUID, String> namesById = new HashMap<>();
         for (Skill s : allSkills) namesById.put(s.getId(), s.getCanonicalName());
@@ -100,11 +109,8 @@ public class JDAnalyzer {
         return new AnalyzedJD(mustSkills, preferredSkills, minExp, maxExp);
     }
 
-    private boolean containsAnyTerm(String section, List<String> terms) {
-        if (section == null || section.isBlank()) return false;
-        String normalized = section.toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9+#.\\s]", " ")
-                .replaceAll("\\s+", " ");
+    private boolean containsAnyTerm(String normalizedSection, List<String> terms) {
+        if (normalizedSection == null || normalizedSection.isBlank()) return false;
         for (String term : terms) {
             if (term == null || term.isBlank()) continue;
             String normalizedTerm = term.toLowerCase(Locale.ROOT)
@@ -113,7 +119,7 @@ public class JDAnalyzer {
                     .trim();
             if (normalizedTerm.isBlank()) continue;
             Pattern p = Pattern.compile("(?<![a-z0-9])" + Pattern.quote(normalizedTerm) + "(?![a-z0-9])");
-            if (p.matcher(normalized).find()) return true;
+            if (p.matcher(normalizedSection).find()) return true;
         }
         return false;
     }
