@@ -156,8 +156,10 @@ public class LivingProfileService {
         // Carry forward prior skills from previous profile versions so living profile accumulates verified skills
         if (candidateId != null) {
             List<CandidateSkill> priorSkills = candidateSkillRepo.findByCandidateId(candidateId);
-            for (CandidateSkill ps : priorSkills) {
-                skillRepo.findById(ps.getSkillId()).ifPresent(s -> allSkillNames.add(s.getCanonicalName()));
+            List<UUID> skillIds = priorSkills.stream().map(CandidateSkill::getSkillId).toList();
+            if (!skillIds.isEmpty()) {
+                // ⚡ Bolt: Replaced N+1 queries with single bulk fetch
+                skillRepo.findAllById(skillIds).forEach(s -> allSkillNames.add(s.getCanonicalName()));
             }
         }
 
